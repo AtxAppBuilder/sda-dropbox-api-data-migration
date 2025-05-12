@@ -1,0 +1,24 @@
+2025-05-12 09:37:08,161 - INFO - Dropbox Folder Memo File Cleanup Tool started
+2025-05-12 09:37:08,162 - INFO - Request to files/get_metadata
+2025-05-12 09:37:08,512 - INFO - Request to files/create_folder_v2
+2025-05-12 09:37:10,219 - INFO - Created archive folder: /JLR Migration/David/Archive
+2025-05-12 09:37:10,220 - INFO - Processing folder: /JLR Migration/David
+2025-05-12 09:37:10,221 - INFO - Request to files/list_folder
+2025-05-12 09:37:10,538 - INFO - Found 0 memo files, 0 other files, and 1 folders.
+2025-05-12 09:37:10,539 - INFO - Request to files/list_folder
+2025-05-12 09:37:10,813 - INFO - Processing folder: /jlr migration/david/archive
+2025-05-12 09:37:10,816 - INFO - Request to files/list_folder
+2025-05-12 09:37:11,061 - INFO - Found 0 memo files, 0 other files, and 0 folders.
+2025-05-12 09:37:11,062 - INFO - Analysis and cleanup process completed.
+2025-05-12 09:47:04,287 - INFO - Dropbox Folder Memo File Cleanup Tool started
+2025-05-12 09:47:04,288 - INFO - Request to files/get_metadata
+2025-05-12 09:47:04,581 - INFO - Request to files/create_folder_v2
+2025-05-12 09:47:05,403 - INFO - Created archive folder: /renee killelea/$ jlr data migration/david/archive
+2025-05-12 09:47:05,404 - INFO - Processing folder: /renee killelea/$ jlr data migration/david
+2025-05-12 09:47:05,405 - INFO - Request to files/list_folder
+2025-05-12 09:47:05,694 - INFO - Found 0 memo files, 0 other files, and 1 folders.
+2025-05-12 09:47:05,695 - INFO - Request to files/list_folder
+2025-05-12 09:47:05,996 - INFO - Processing folder: /renee killelea/$ jlr data migration/david/archive
+2025-05-12 09:47:05,997 - INFO - Request to files/list_folder
+2025-05-12 09:47:06,252 - INFO - Found 0 memo files, 0 other files, and 0 folders.
+2025-05-12 09:47:06,253 - INFO - Analysis and cleanup process completed.

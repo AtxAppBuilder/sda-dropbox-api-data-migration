@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import dropbox
+from dropbox.exceptions import ApiError
 from dotenv import load_dotenv
 
 # Setup logging with timestamps
@@ -20,26 +21,11 @@ if not DROPBOX_ACCESS_TOKEN:
 # Initialize Dropbox client with your friend’s token
 dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
 
+# Step 1: Check for "memo" in filename
 def has_memo_in_filename(filename):
     return 'memo' in filename.lower()
 
-def create_archive_folder(dbx, archive_path):
-    """Create an archive folder in Dropbox if it doesn't exist."""
-    try:
-        dbx.files_get_metadata(archive_path)
-        logging.info(f"Archive folder already exists: {archive_path}")
-    except dropbox.exceptions.ApiError as e:
-        if e.error.is_path() and e.error.get_path().is_not_found():
-            try:
-                dbx.files_create_folder_v2(archive_path)
-                logging.info(f"Created archive folder: {archive_path}")
-            except dropbox.exceptions.ApiError as e:
-                logging.error(f"Error creating archive folder {archive_path}: {e}")
-                raise
-        else:
-            logging.error(f"Error checking archive folder {archive_path}: {e}")
-            raise
-
+# Step 2: List folder contents using Dropbox API
 def list_dropbox_folder(dbx, folder_path, recursive=True):
     result = {
         'memo_files': [],
@@ -67,79 +53,55 @@ def list_dropbox_folder(dbx, folder_path, recursive=True):
                         result['other_files'].append(entry.path_lower)
                 elif isinstance(entry, dropbox.files.FolderMetadata):
                     result['folders'].append(entry.path_lower)
-    except dropbox.exceptions.ApiError as e:
+    except ApiError as e:
         logging.error(f"Error listing Dropbox folder {folder_path}: {e}")
     return result
 
-def move_dropbox_file(dbx, file_path, archive_path, dry_run=True):
-    """Move a file in Dropbox to the archive folder."""
-    new_path = os.path.join(archive_path, os.path.basename(file_path))
-    if dry_run:
-        logging.info(f"[DRY RUN] Would move file: {file_path} to {new_path}")
-        return True
+# Step 3: Move a file or folder to the archive
+def move_to_archive(dbx, source_path, archive_path, dry_run=True):
     try:
-        dbx.files_move_v2(file_path, new_path, allow_ownership_transfer=True)
-        logging.info(f"Moved file: {file_path} to {new_path}")
+        target_path = f"{archive_path}/{os.path.basename(source_path)}"
+        if dry_run:
+            logging.info(f"[DRY RUN] Would move {source_path} to {target_path}")
+            return True
+        dbx.files_move_v2(dropbox.files.RelocationArg(source_path, target_path))
+        logging.info(f"Moved {source_path} to {target_path}")
         return True
-    except dropbox.exceptions.ApiError as e:
-        logging.error(f"Error moving file {file_path} to {new_path}: {e}")
+    except ApiError as e:
+        logging.error(f"Error moving {source_path} to {target_path}: {e}")
         return False
 
-def move_dropbox_folder(dbx, folder_path, archive_path, dry_run=True):
-    """Move a folder in Dropbox to the archive folder."""
-    new_path = os.path.join(archive_path, os.path.basename(folder_path))
-    if dry_run:
-        logging.info(f"[DRY RUN] Would move folder: {folder_path} to {new_path}")
-        return True
-    try:
-        dbx.files_move_v2(folder_path, new_path, allow_ownership_transfer=True)
-        logging.info(f"Moved folder: {folder_path} to {new_path}")
-        return True
-    except dropbox.exceptions.ApiError as e:
-        logging.error(f"Error moving folder {folder_path} to {new_path}: {e}")
-        return False
-
+# Step 4: Process folder recursively
 def process_folder(dbx, folder_path, archive_path, delete_empty_folders=True, dry_run=True):
     logging.info(f"Processing folder: {folder_path}")
     contents = list_dropbox_folder(dbx, folder_path, recursive=False)
     logging.info(f"Found {len(contents['memo_files'])} memo files, {len(contents['other_files'])} other files, and {len(contents['folders'])} folders.")
 
-    # Move all "memo" files in the current folder to the archive
+    # Move memo files to archive
     for file in contents['memo_files']:
-        move_dropbox_file(dbx, file, archive_path, dry_run)
+        move_to_archive(dbx, file, archive_path, dry_run)
 
-    # Process subfolders
+    # Move folders with exactly one memo file to archive
     for folder in contents['folders']:
         subfolder_path = folder
         subfolder_contents = list_dropbox_folder(dbx, subfolder_path, recursive=False)
         if (len(subfolder_contents['memo_files']) == 1 and 
             not subfolder_contents['other_files'] and 
             not subfolder_contents['folders']):
-            # Move the single "memo" file and the folder to the archive
-            all_moved = True
-            for file in subfolder_contents['memo_files']:
-                if not move_dropbox_file(dbx, file, archive_path, dry_run):
-                    all_moved = False
-            if all_moved:
-                move_dropbox_folder(dbx, subfolder_path, archive_path, dry_run)
-            else:
-                logging.info(f"Could not move the memo file in {subfolder_path}, skipping folder move.")
+            move_to_archive(dbx, subfolder_path, archive_path, dry_run)
         else:
-            # Recursively process the subfolder
             process_folder(dbx, subfolder_path, archive_path, delete_empty_folders, dry_run)
 
+# Step 5: Main function
 def main():
     logging.info("Dropbox Folder Memo File Cleanup Tool started")
     print("Dropbox Folder Memo File Cleanup Tool")
     print("---------------------------------")
     
     dropbox_folder_paths = [
-        "/path/to/shared/folder"  # Replace with the folder path in your friend’s Dropbox
+        "/renee killelea/$ jlr data migration/david"  # Source path
     ]
-    archive_path = "/path/to/shared/folder/Archive"  # Archive folder in your friend’s Dropbox
-    
-    # Create the archive folder
-    create_archive_folder(dbx, archive_path)
+    archive_path = "/renee killelea/$ jlr data migration/david/archive"  # Archive path
     
     for folder_path in dropbox_folder_paths:
         try:
